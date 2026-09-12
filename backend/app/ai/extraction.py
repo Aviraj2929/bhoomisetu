@@ -137,15 +137,24 @@ class LandRecordExtractionParser:
     def _extract_owner_name(
         cls, full_text: str, tokens: List[OCRToken], page: int, provider: str
     ) -> Optional[FieldExtractionResult]:
-        pattern = r"(?:खातेदार|मालिक|काश्तकार|पट्टेदार|owner|holder)\s*(?:का नाम|name)?\s*[:\.-]?\s*([\u0900-\u097F\sA-Za-z]+)"
+        keywords = r"(?:खातेदार|भूमिस्वामी|मालिक|काश्तकार|पट्टेदार|स्वामी|स्वामिनी|कृषक|owner|landowner|holder)\s*(?:का\s*नाम|नाम|name)?"
+        pattern = keywords + r"\s*[:\.-]?\s*([^\n\r,;:]+)"
         match = re.search(pattern, full_text, re.IGNORECASE)
         if match:
             raw_snippet = match.group(0)
-            name_val = match.group(1).split("\n")[0].strip()
+            raw_val = match.group(1).strip()
+            # Truncate if raw_val matched into next field keywords
+            stop_keywords = ["क्षेत्रफल", "रकबा", "खाता", "खसरा", "सर्वे", "फसल", "area", "khata", "khasra", "survey"]
+            for sk in stop_keywords:
+                if sk in raw_val.lower():
+                    raw_val = raw_val.lower().split(sk)[0].strip()
+
+            name_val = raw_val.strip()
             if len(name_val) >= 2:
-                bbox, token_conf = cls._find_bbox_and_conf(name_val.split()[0], tokens)
+                first_word = name_val.split()[0]
+                bbox, token_conf = cls._find_bbox_and_conf(first_word, tokens)
                 norm_name = FieldNormalizer.normalize_numerals(name_val)
-                conf = min(round(token_conf * 0.90, 2), 0.92) if token_conf > 0 else 0.75
+                conf = min(round(token_conf * 0.95, 2), 0.95) if token_conf > 0 else 0.88
 
                 return FieldExtractionResult(
                     field_name="owner_name",

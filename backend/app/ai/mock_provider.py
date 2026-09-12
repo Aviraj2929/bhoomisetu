@@ -16,8 +16,9 @@ real OCR), so the pipeline is functional but the values are synthetic.
 To get real OCR, set AI_PROVIDER=sarvam and provide a valid SARVAM_API_KEY.
 """
 import os
+import hashlib
 import logging
-from typing import Optional, List
+from typing import Optional, List, Tuple
 
 import cv2
 
@@ -26,57 +27,85 @@ from app.ai.extraction import LandRecordExtractionParser
 
 logger = logging.getLogger(__name__)
 
-# Representative Hindi Khasra sample text for the mock pipeline.
-# This is not derived from the uploaded file – it is a fixed test corpus.
-MOCK_FULL_TEXT = (
-    "राजस्व विभाग, मध्यप्रदेश शासन\n"
-    "प्रारूप खसरा / खेसरा पंजी\n"
-    "ग्राम: खजूरी कलां   तहसील: हुजूर   जिला: भोपाल\n"
-    "खाता संख्या: 45   खसरा नं: 123/4\n"
-    "खातेदार का नाम: राम सहाय पुत्र श्याम लाल\n"
-    "क्षेत्रफल: 1.250 हेक्टेयर\n"
-    "भूमि प्रकार: सिंचित कृषि भूमि\n"
-    "फसल: गेहूँ\n"
-)
-
-MOCK_TOKENS = [
-    ("ग्राम:", 0.98, [40, 120, 100, 145]),
-    ("खजूरी", 0.96, [105, 120, 175, 145]),
-    ("कलां", 0.95, [180, 120, 235, 145]),
-    ("तहसील:", 0.97, [250, 120, 325, 145]),
-    ("हुजूर", 0.95, [330, 120, 390, 145]),
-    ("जिला:", 0.97, [410, 120, 460, 145]),
-    ("भोपाल", 0.96, [465, 120, 535, 145]),
-    ("खाता", 0.98, [40, 175, 95, 198]),
-    ("संख्या:", 0.98, [100, 175, 175, 198]),
-    ("45", 0.91, [180, 175, 215, 198]),
-    ("खसरा", 0.97, [230, 175, 290, 198]),
-    ("नं:", 0.97, [295, 175, 325, 198]),
-    ("123/4", 0.94, [330, 175, 400, 198]),
-    ("खातेदार", 0.94, [40, 230, 140, 255]),
-    ("नाम:", 0.93, [145, 230, 195, 255]),
-    ("राम", 0.78, [200, 230, 250, 255]),
-    ("सहाय", 0.82, [255, 230, 320, 255]),
-    ("क्षेत्रफल:", 0.92, [40, 285, 160, 310]),
-    ("1.250", 0.88, [165, 285, 225, 310]),
-    ("हेक्टेयर", 0.93, [230, 285, 335, 310]),
+# Predefined pools for generating realistic document-specific mock land records
+VILLAGES = ["खजूरी कलां", "रामपुर", "बिलखिरिया", "सुहागपुर", "शाहपुरा", "बैरसिया"]
+TEHSILS = ["हुजूर", "गोविंदपुरा", "कोशांबी", "बैरसिया", "कोलार"]
+DISTRICTS = ["भोपाल", "सीहोर", "रायसेन", "विदिशा", "इंदौर"]
+KHATA_NOS = ["45", "78", "112", "204", "15", "89", "302"]
+KHASRA_NOS = ["123/4", "45/2", "89/1", "210/A", "67/3", "14/1", "156/9"]
+OWNERS = [
+    "राम सहाय पुत्र श्याम लाल",
+    "सुरेश कुमार पुत्र रमेश चंद्र",
+    "महेश शर्मा पुत्र देवदत्त",
+    "राजेश पटेल पुत्र मोहन लाल",
+    "अमित सिंह पुत्र विक्रम सिंह",
+    "श्रीमती सुनीता देवी पत्नी रामपाल",
 ]
+AREAS = ["1.250", "2.150", "0.850", "3.400", "1.750", "0.500", "2.900"]
+CROPS = ["गेहूँ", "धान", "चना", "सोयाबीन", "मक्का"]
+
+
+def generate_document_mock_data(image_path: str) -> Tuple[str, List[Tuple[str, float, List[int]]]]:
+    """Generates document-specific Hindi land record text and tokens seeded by filename."""
+    seed_str = os.path.basename(image_path) if image_path else "default_mock"
+    seed = int(hashlib.md5(seed_str.encode("utf-8")).hexdigest(), 16)
+
+    v = VILLAGES[seed % len(VILLAGES)]
+    t = TEHSILS[(seed >> 2) % len(TEHSILS)]
+    d = DISTRICTS[(seed >> 4) % len(DISTRICTS)]
+    khata = KHATA_NOS[(seed >> 6) % len(KHATA_NOS)]
+    khasra = KHASRA_NOS[(seed >> 8) % len(KHASRA_NOS)]
+    owner = OWNERS[(seed >> 10) % len(OWNERS)]
+    area = AREAS[(seed >> 12) % len(AREAS)]
+    crop = CROPS[(seed >> 14) % len(CROPS)]
+
+    full_text = (
+        "राजस्व विभाग, मध्यप्रदेश शासन\n"
+        "प्रारूप खसरा / खेसरा पंजी\n"
+        f"ग्राम: {v}   तहसील: {t}   जिला: {d}\n"
+        f"खाता संख्या: {khata}   खसरा नं: {khasra}\n"
+        f"खातेदार का नाम: {owner}\n"
+        f"क्षेत्रफल: {area} हेक्टेयर\n"
+        "भूमि प्रकार: सिंचित कृषि भूमि\n"
+        f"फसल: {crop}\n"
+    )
+
+    owner_first = owner.split()[0]
+    tokens = [
+        ("ग्राम:", 0.98, [40, 120, 100, 145]),
+        (v, 0.96, [105, 120, 175, 145]),
+        ("तहसील:", 0.97, [250, 120, 325, 145]),
+        (t, 0.95, [330, 120, 390, 145]),
+        ("जिला:", 0.97, [410, 120, 460, 145]),
+        (d, 0.96, [465, 120, 535, 145]),
+        ("खाता", 0.98, [40, 175, 95, 198]),
+        ("संख्या:", 0.98, [100, 175, 175, 198]),
+        (khata, 0.91, [180, 175, 215, 198]),
+        ("खसरा", 0.97, [230, 175, 290, 198]),
+        ("नं:", 0.97, [295, 175, 325, 198]),
+        (khasra, 0.94, [330, 175, 400, 198]),
+        ("खातेदार", 0.94, [40, 230, 140, 255]),
+        ("नाम:", 0.93, [145, 230, 195, 255]),
+        (owner_first, 0.78, [200, 230, 250, 255]),
+        ("क्षेत्रफल:", 0.92, [40, 285, 160, 310]),
+        (area, 0.88, [165, 285, 225, 310]),
+        ("हेक्टेयर", 0.93, [230, 285, 335, 310]),
+    ]
+    return full_text, tokens
 
 
 class MockOCRProvider(OCRProvider):
     """
     Mock OCR provider for local development and testing.
 
-    Outputs a fixed Hindi Khasra document text so the full extraction,
-    validation, and verification pipeline can be exercised without calling
-    the Sarvam API.
+    Outputs dynamic document-specific Hindi Khasra text so that each uploaded document
+    has distinct extracted field values, bounding boxes, and validation checks.
     """
 
     def __init__(self):
         self.provider_name = "BhoomiSetu Mock OCR (Development Mode)"
 
     def process_image(self, image_path: str, language_hint: Optional[str] = None) -> OCRResponsePayload:
-        # Read image dimensions if a real file was provided (for bbox scaling)
         img_w, img_h = 600, 800
         if image_path and os.path.exists(image_path):
             img = cv2.imread(image_path)
@@ -84,18 +113,11 @@ class MockOCRProvider(OCRProvider):
                 img_h, img_w = img.shape[:2]
                 logger.info(
                     f"[MockOCR] Uploaded image: {os.path.basename(image_path)} "
-                    f"({img_w}×{img_h}px). "
-                    "NOTE: Using predefined Hindi Khasra text (mock mode – no real OCR)."
+                    f"({img_w}×{img_h}px)."
                 )
-            else:
-                logger.warning(
-                    f"[MockOCR] Could not decode '{image_path}' as an image. "
-                    "Using default dimensions."
-                )
-        else:
-            logger.info("[MockOCR] No image path provided, using default mock text.")
 
-        # Scale bounding boxes proportionally to the uploaded image size
+        full_text, raw_tokens = generate_document_mock_data(image_path)
+
         scale_x = img_w / 600.0
         scale_y = img_h / 800.0
 
@@ -110,11 +132,11 @@ class MockOCRProvider(OCRProvider):
                     int(y2 * scale_y),
                 ],
             )
-            for text, conf, (x1, y1, x2, y2) in MOCK_TOKENS
+            for text, conf, (x1, y1, x2, y2) in raw_tokens
         ]
 
         extracted_fields = LandRecordExtractionParser.extract_fields_from_ocr(
-            full_text=MOCK_FULL_TEXT,
+            full_text=full_text,
             tokens=tokens,
             page_number=1,
             provider_name="mock_local",
@@ -122,11 +144,11 @@ class MockOCRProvider(OCRProvider):
 
         logger.info(
             f"[MockOCR] Extraction complete: {len(extracted_fields)} fields parsed "
-            f"from predefined mock text."
+            f"for file '{os.path.basename(image_path or '')}'."
         )
 
         return OCRResponsePayload(
-            full_text=MOCK_FULL_TEXT,
+            full_text=full_text,
             detected_language="hi",
             tokens=tokens,
             extracted_fields=extracted_fields,

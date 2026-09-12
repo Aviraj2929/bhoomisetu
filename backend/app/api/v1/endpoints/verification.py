@@ -136,6 +136,8 @@ def get_record_verification_details(document_id: str, db: Session = Depends(get_
     return {
         "document_id": document_id,
         "filename": doc.original_filename,
+        "file_url": f"/api/v1/documents/{document_id}/file",
+        "mime_type": doc.mime_type,
         "status": doc.status.value,
         "overall_confidence": doc.overall_confidence,
         "fields": [

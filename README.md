@@ -12,6 +12,22 @@ BhoomiSetu is an enterprise-grade AI platform designed specifically to convert u
 
 ## 🛠️ Complete System Architecture
 
+```mermaid
+graph TD
+    A["Uploaded Document (PDF / Image)"] --> B["OpenCV Preprocessing (Deskewing, Denoising, Contrast)"]
+    B --> C{"AI OCR / HTR Provider"}
+    C -- "Sarvam AI (Vision 1.5)" --> D["Sarvam Doc AI Digitise + Schema Extract"]
+    C -- "Offline / Development" --> E["Mock OCR + Indic NLP Parser"]
+    D --> F["Field-Level Confidence & Source Bounding Boxes"]
+    E --> F
+    F --> G["Validation Engine & Multi-Signal Duplicate Checks"]
+    G -- "Confidence >= 0.85 & Valid" --> H["APPROVED (Master Record)"]
+    G -- "Confidence < 0.85 or Flagged" --> I["REQUIRES VERIFICATION (3-Pane HITL Workspace)"]
+    I --> J["Human Verifier Review & Audit Trail"]
+    H --> K["Database (PostgreSQL / SQLite)"]
+    J --> K
+```
+
 ```
 Uploaded Document (PDF / Image)
   │

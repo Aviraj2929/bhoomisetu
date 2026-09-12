@@ -18,6 +18,17 @@ interface SuspectedDuplicate {
   explanation: string;
 }
 
+const FIELD_LABELS: Record<string, string> = {
+  owner_name: 'Registered Owner Name (खातेदार)',
+  khata_number: 'Khata Number (खाता संख्या)',
+  survey_number: 'Survey / Khasra No (खसरा नं.)',
+  plot_area: 'Plot Area (क्षेत्रफल)',
+  area_unit: 'Area Unit (इकाई)',
+  village: 'Village (ग्राम)',
+  tehsil: 'Tehsil (तहसील)',
+  district: 'District (जिला)',
+};
+
 interface WorkspaceProps {
   task: DocumentVerificationTask;
   onSaveCorrections: (updatedFields: ExtractedField[]) => void;
@@ -103,42 +114,115 @@ export const VerificationWorkspace: React.FC<WorkspaceProps> = ({ task, onSaveCo
       <div className="flex-1 grid grid-cols-12 overflow-hidden">
         {/* LEFT PANE: Document Scan Canvas (5 Columns) */}
         <div className="col-span-5 border-r border-slate-800 bg-slate-950 p-4 relative flex flex-col items-center justify-center overflow-hidden">
-          <div className="absolute top-4 right-4 z-10 flex space-x-1 bg-slate-800 p-1 rounded-lg border border-slate-700">
-            <button onClick={() => setZoomLevel(prev => Math.min(prev + 0.25, 2.5))} className="p-1.5 text-slate-300 hover:text-white">
-              <ZoomIn size={16} />
+          {/* Zoom and Document Info Controls */}
+          <div className="absolute top-4 right-4 z-10 flex items-center space-x-2 bg-slate-900/90 backdrop-blur-sm p-1.5 rounded-lg border border-slate-700 shadow-xl">
+            <span className="text-[11px] text-slate-400 font-mono px-2">Zoom: {Math.round(zoomLevel * 100)}%</span>
+            <button
+              onClick={() => setZoomLevel(prev => Math.min(prev + 0.25, 2.5))}
+              title="Zoom In"
+              className="p-1.5 text-slate-300 hover:text-white bg-slate-800 hover:bg-slate-700 rounded transition"
+            >
+              <ZoomIn size={15} />
             </button>
-            <button onClick={() => setZoomLevel(prev => Math.max(prev - 0.25, 0.75))} className="p-1.5 text-slate-300 hover:text-white">
-              <ZoomOut size={16} />
+            <button
+              onClick={() => setZoomLevel(prev => Math.max(prev - 0.25, 0.5))}
+              title="Zoom Out"
+              className="p-1.5 text-slate-300 hover:text-white bg-slate-800 hover:bg-slate-700 rounded transition"
+            >
+              <ZoomOut size={15} />
+            </button>
+            <button
+              onClick={() => setZoomLevel(1)}
+              title="Reset Zoom"
+              className="p-1.5 text-slate-300 hover:text-white bg-slate-800 hover:bg-slate-700 rounded transition text-xs font-semibold px-2"
+            >
+              Reset
             </button>
           </div>
 
-          <div className="relative overflow-auto max-h-full max-w-full border border-slate-800 rounded shadow-2xl bg-white" style={{ transform: `scale(${zoomLevel})` }}>
-            {/* SVG Rendered Document Mock Scan */}
-            <svg width="450" height="600" viewBox="0 0 450 600" className="bg-amber-50">
-              <text x="30" y="50" fill="#334155" fontSize="18" fontWeight="bold">प्रारूप खसरा (Khasra Register)</text>
-              <text x="30" y="90" fill="#475569" fontSize="12">ग्राम: खजूरी कलां | तहसील: हुजूर | जिला: भोपाल</text>
-              <line x1="30" y1="110" x2="420" y2="110" stroke="#cbd5e1" strokeWidth="2" />
-              
-              {/* Text Fields */}
-              <text x="30" y="160" fill="#1e293b" fontSize="14">1. खाता संख्या / Khata No: 45</text>
-              <text x="30" y="220" fill="#1e293b" fontSize="14">2. खातेदार का नाम: राम साहाय</text>
-              <text x="30" y="280" fill="#1e293b" fontSize="14">3. खसरा संख्या / Khasra No: 123/4</text>
-              <text x="30" y="340" fill="#1e293b" fontSize="14">4. क्षेत्रफल (Hectare): 1.250</text>
-
-              {/* Bounding Box Highlights for Active Selected Field */}
-              {activeField && activeField.source_bbox && (
-                <rect
-                  x={activeField.source_bbox[0]}
-                  y={activeField.source_bbox[1] / 2}
-                  width={Math.max(activeField.source_bbox[2] - activeField.source_bbox[0], 120)}
-                  height="30"
-                  fill="rgba(245, 158, 11, 0.25)"
-                  stroke="#f59e0b"
-                  strokeWidth="3"
-                  className="animate-pulse"
+          <div className="overflow-auto max-h-full max-w-full flex items-center justify-center p-4 w-full h-full">
+            <div
+              className="relative border border-slate-800 rounded-lg shadow-2xl bg-slate-900 transition-transform origin-center"
+              style={{ transform: `scale(${zoomLevel})` }}
+            >
+              {task.filename.toLowerCase().endsWith('.pdf') ? (
+                <iframe
+                  src={task.image_url || `http://localhost:8000/api/v1/documents/${task.document_id}/file`}
+                  title={task.filename}
+                  className="w-[480px] h-[620px] rounded bg-white"
                 />
+              ) : (
+                <div className="relative inline-block">
+                  <img
+                    src={task.image_url || `http://localhost:8000/api/v1/documents/${task.document_id}/file`}
+                    alt={task.filename}
+                    className="max-w-[480px] max-h-[620px] object-contain rounded bg-slate-950 block shadow-inner"
+                    onError={(e) => {
+                      // Fallback display if image cannot be rendered directly
+                      const target = e.currentTarget;
+                      target.style.display = 'none';
+                      if (target.nextElementSibling) {
+                        (target.nextElementSibling as HTMLElement).style.display = 'flex';
+                      }
+                    }}
+                  />
+
+                  {/* Fallback box if image fails to render */}
+                  <div className="hidden w-[480px] h-[400px] flex-col items-center justify-center bg-slate-900 text-slate-400 p-6 text-center space-y-3 rounded border border-slate-800">
+                    <Eye size={40} className="text-slate-600" />
+                    <p className="text-sm font-semibold text-slate-200">{task.filename}</p>
+                    <p className="text-xs text-slate-500">Document file uploaded successfully.</p>
+                    <a
+                      href={task.image_url || `http://localhost:8000/api/v1/documents/${task.document_id}/file`}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="text-xs text-emerald-400 hover:underline bg-emerald-500/10 border border-emerald-500/30 px-3 py-1.5 rounded"
+                    >
+                      Open Raw Document File ↗
+                    </a>
+                  </div>
+
+                  {/* Dynamic SVG Bounding Box Overlays */}
+                  <svg className="absolute inset-0 w-full h-full pointer-events-auto">
+                    {fields.map(f => {
+                      if (!f.source_bbox || f.source_bbox.length < 4) return null;
+                      const [x1, y1, x2, y2] = f.source_bbox;
+                      const isSelected = activeFieldId === f.field_id;
+                      const w = Math.max(x2 - x1, 45);
+                      const h = Math.max(y2 - y1, 22);
+
+                      return (
+                        <g key={f.field_id} className="cursor-pointer" onClick={() => setActiveFieldId(f.field_id)}>
+                          <rect
+                            x={x1}
+                            y={y1}
+                            width={w}
+                            height={h}
+                            fill={isSelected ? "rgba(16, 185, 129, 0.30)" : "rgba(245, 158, 11, 0.15)"}
+                            stroke={isSelected ? "#10b981" : "#f59e0b"}
+                            strokeWidth={isSelected ? "3" : "1.5"}
+                            strokeDasharray={isSelected ? "none" : "3,3"}
+                            className={isSelected ? "animate-pulse" : "hover:stroke-emerald-400"}
+                          />
+                          {isSelected && (
+                            <text
+                              x={x1}
+                              y={Math.max(y1 - 6, 14)}
+                              fill="#10b981"
+                              fontSize="11"
+                              fontWeight="bold"
+                              className="font-mono"
+                            >
+                              {f.field_name}: {f.raw_value}
+                            </text>
+                          )}
+                        </g>
+                      );
+                    })}
+                  </svg>
+                </div>
               )}
-            </svg>
+            </div>
           </div>
         </div>
 
@@ -194,7 +278,17 @@ export const VerificationWorkspace: React.FC<WorkspaceProps> = ({ task, onSaveCo
               </div>
 
               <div className="bg-slate-800 border border-slate-700 rounded-lg p-3 space-y-2">
-                <span className="text-[11px] font-semibold text-slate-400 uppercase">Raw Recognized Snippet</span>
+                <div className="flex items-center justify-between">
+                  <span className="text-[11px] font-semibold text-slate-400 uppercase">Raw Recognized Snippet</span>
+                  <button
+                    onClick={() => handleFieldChange(activeField.field_id, activeField.raw_value)}
+                    className="text-[11px] bg-emerald-600/20 hover:bg-emerald-600/30 text-emerald-400 border border-emerald-500/30 px-2 py-0.5 rounded font-semibold transition flex items-center space-x-1"
+                    title="Auto-fill this raw OCR text into the field input"
+                  >
+                    <Edit3 size={11} />
+                    <span>Auto-Fill Input</span>
+                  </button>
+                </div>
                 <p className="font-mono text-sm text-slate-200 bg-slate-950 p-2 rounded">{activeField.raw_value}</p>
               </div>
 
@@ -220,9 +314,22 @@ export const VerificationWorkspace: React.FC<WorkspaceProps> = ({ task, onSaveCo
 
         {/* RIGHT PANE: Targeted Form Fields (4 Columns) */}
         <div className="col-span-4 bg-slate-900 p-5 overflow-y-auto space-y-4">
-          <h3 className="font-bold text-xs uppercase tracking-wider text-slate-400 border-b border-slate-800 pb-2">
-            Targeted Extracted Fields
-          </h3>
+          <div className="flex items-center justify-between border-b border-slate-800 pb-2">
+            <h3 className="font-bold text-xs uppercase tracking-wider text-slate-400">
+              Targeted Extracted Fields
+            </h3>
+            <button
+              onClick={() => {
+                fields.forEach(f => {
+                  if (f.raw_value) handleFieldChange(f.field_id, f.raw_value);
+                });
+              }}
+              className="text-[11px] bg-sky-600/20 hover:bg-sky-600/30 text-sky-400 border border-sky-500/30 px-2 py-0.5 rounded font-semibold transition"
+              title="Populate all fields with OCR extracted values"
+            >
+              Auto-Fill All Fields
+            </button>
+          </div>
 
           <div className="space-y-3">
             {fields.map(field => {
@@ -242,8 +349,8 @@ export const VerificationWorkspace: React.FC<WorkspaceProps> = ({ task, onSaveCo
                   }`}
                 >
                   <div className="flex items-center justify-between mb-2">
-                    <span className="text-xs font-bold text-slate-300 uppercase tracking-wide">
-                      {field.field_name}
+                    <span className="text-xs font-bold text-slate-300 tracking-wide">
+                      {FIELD_LABELS[field.field_name] || field.field_name.replace(/_/g, ' ').toUpperCase()}
                     </span>
                     <span
                       className={`text-[10px] font-mono font-bold px-2 py-0.5 rounded ${

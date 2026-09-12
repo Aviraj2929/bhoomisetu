@@ -81,7 +81,7 @@ export const App: React.FC = () => {
         filename: filename,
         status: data.status,
         overall_confidence: data.overall_confidence ?? overallConf,
-        image_url: '',    // Could be extended to serve the stored image
+        image_url: data.file_url ? (data.file_url.startsWith('http') ? data.file_url : `${API_BASE.replace('/api/v1', '')}${data.file_url}`) : `${API_BASE}/documents/${documentId}/file`,
         fields: (data.fields || []).map((f: any) => ({
           field_id: f.field_id,
           field_name: f.field_name,

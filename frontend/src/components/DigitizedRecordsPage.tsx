@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Database, CheckCircle, AlertTriangle, Loader2, RefreshCw } from 'lucide-react';
+import { Database, CheckCircle, AlertTriangle, Loader2, RefreshCw, Trash2 } from 'lucide-react';
 
 const API_BASE = 'http://localhost:8000/api/v1';
 
@@ -47,6 +47,7 @@ const StatusBadge: React.FC<{ status: string }> = ({ status }) => {
 export const DigitizedRecordsPage: React.FC = () => {
   const [records, setRecords] = useState<LandRecord[]>([]);
   const [loading, setLoading] = useState(true);
+  const [clearing, setClearing] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const fetchRecords = () => {
@@ -67,6 +68,25 @@ export const DigitizedRecordsPage: React.FC = () => {
       });
   };
 
+  const handleClearHistory = async () => {
+    if (!window.confirm("Are you sure you want to clear all database history and digitized records? This action cannot be undone.")) {
+      return;
+    }
+
+    setClearing(true);
+    try {
+      const res = await fetch(`${API_BASE}/records/`, {
+        method: 'DELETE',
+      });
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      setRecords([]);
+    } catch (err: any) {
+      alert(`Failed to clear history: ${err.message}`);
+    } finally {
+      setClearing(false);
+    }
+  };
+
   useEffect(() => {
     fetchRecords();
   }, []);
@@ -83,13 +103,24 @@ export const DigitizedRecordsPage: React.FC = () => {
             </p>
           </div>
         </div>
-        <button
-          onClick={fetchRecords}
-          className="flex items-center space-x-2 text-xs text-slate-400 hover:text-slate-200 border border-slate-700 hover:border-slate-600 px-3 py-1.5 rounded-lg transition"
-        >
-          <RefreshCw size={13} />
-          <span>Refresh</span>
-        </button>
+        <div className="flex items-center space-x-2">
+          <button
+            onClick={fetchRecords}
+            disabled={loading || clearing}
+            className="flex items-center space-x-2 text-xs text-slate-400 hover:text-slate-200 border border-slate-700 hover:border-slate-600 px-3 py-1.5 rounded-lg transition disabled:opacity-50"
+          >
+            <RefreshCw size={13} className={loading ? 'animate-spin' : ''} />
+            <span>Refresh</span>
+          </button>
+          <button
+            onClick={handleClearHistory}
+            disabled={clearing || records.length === 0}
+            className="flex items-center space-x-1.5 text-xs font-semibold text-rose-400 hover:text-rose-300 bg-rose-500/10 border border-rose-500/30 hover:bg-rose-500/20 disabled:opacity-40 disabled:cursor-not-allowed px-3 py-1.5 rounded-lg transition"
+          >
+            <Trash2 size={13} />
+            <span>{clearing ? 'Clearing...' : 'Clear History'}</span>
+          </button>
+        </div>
       </div>
 
       {loading && (

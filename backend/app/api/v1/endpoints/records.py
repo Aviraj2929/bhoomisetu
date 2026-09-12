@@ -10,6 +10,8 @@ from pydantic import BaseModel
 from app.core.database import get_db
 from app.models.document import Document
 from app.models.extraction import ExtractedField
+from app.models.audit import AuditLog
+from app.models.correction import HumanCorrectionLog
 from app.models.enums import DocumentStatus
 
 router = APIRouter()
@@ -129,3 +131,22 @@ def get_land_record(document_id: str, db: Session = Depends(get_db)):
         tehsil=fm.get("tehsil"),
         district=fm.get("district"),
     )
+
+
+@router.delete("/", status_code=200)
+def clear_all_records(db: Session = Depends(get_db)):
+    """
+    DELETE /api/v1/records/
+    Clear all digitized land records, document uploads, extracted fields, audit logs, and corrections.
+    """
+    try:
+        db.query(ExtractedField).delete()
+        db.query(HumanCorrectionLog).delete()
+        db.query(AuditLog).delete()
+        db.query(Document).delete()
+        db.commit()
+        return {"status": "SUCCESS", "message": "All database history and digitized records cleared successfully."}
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(status_code=500, detail=f"Failed to clear database records: {str(e)}")
+

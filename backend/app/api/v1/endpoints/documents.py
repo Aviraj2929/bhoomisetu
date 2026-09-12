@@ -16,6 +16,7 @@ import hashlib
 import logging
 
 from fastapi import APIRouter, Depends, HTTPException, UploadFile, File, BackgroundTasks
+from fastapi.responses import FileResponse
 from sqlalchemy.orm import Session
 from typing import List
 
@@ -140,6 +141,22 @@ def get_document(document_id: str, db: Session = Depends(get_db)):
     if not doc:
         raise HTTPException(status_code=404, detail="Document not found")
     return doc
+
+
+@router.get("/{document_id}/file")
+def get_document_file(document_id: str, db: Session = Depends(get_db)):
+    """GET /api/v1/documents/{id}/file  – return the stored document file."""
+    repo = DocumentRepository(db)
+    doc = repo.get_by_id(document_id)
+    if not doc:
+        raise HTTPException(status_code=404, detail="Document not found")
+    if not os.path.exists(doc.storage_path):
+        raise HTTPException(status_code=404, detail="File on disk not found")
+    return FileResponse(
+        path=doc.storage_path,
+        media_type=doc.mime_type or "application/octet-stream",
+        filename=doc.original_filename,
+    )
 
 
 @router.get("/{document_id}/status", response_model=DocumentStatusResponse)
