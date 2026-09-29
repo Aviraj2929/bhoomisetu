@@ -2,8 +2,16 @@
 @tailwind components;
 @tailwind utilities;
 
-body {
-  margin: 0;
-  padding: 0;
-  background-color: #0f172a;
+html { font-size: 16px; }
+body { margin: 0; padding: 0; background-color: #f4f6f9; }
+
+:focus-visible { outline: 3px solid #ff9933; outline-offset: 2px; }
+
+@layer components {
+  .gov-card { @apply bg-white border border-line; }
+  .gov-card-title { @apply bg-navy text-white text-sm font-semibold px-4 py-2; }
+  .gov-btn { @apply bg-navy text-white text-sm font-semibold px-4 py-2 border border-navy-dark hover:bg-navy-dark disabled:opacity-50 disabled:cursor-not-allowed; }
+  .gov-btn-alt { @apply bg-white text-navy text-sm font-semibold px-4 py-2 border border-navy hover:bg-navy-light; }
+  .gov-th { @apply px-4 py-2 text-left font-semibold text-navy bg-navy-light border-b border-line; }
+  .gov-td { @apply px-4 py-2 border-b border-line; }
 }

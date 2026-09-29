@@ -1,22 +1,22 @@
 /** @type {import('tailwindcss').Config} */
 export default {
-  content: [
-    "./index.html",
-    "./src/**/*.{js,ts,jsx,tsx}",
-  ],
+  content: ["./index.html", "./src/**/*.{js,ts,jsx,tsx}"],
   theme: {
     extend: {
       colors: {
-        gov: {
-          dark: '#0f172a',
-          card: '#1e293b',
-          border: '#334155',
-          accent: '#0284c7',
-          success: '#10b981',
-          warning: '#f59e0b',
-          danger: '#ef4444'
-        }
-      }
+        navy: { DEFAULT: '#1a3a6b', dark: '#12294d', light: '#e8eef8' },
+        saffron: { DEFAULT: '#ff9933', dark: '#e67e00' },
+        india: { green: '#138808', greenLight: '#e6f4e4' },
+        ink: '#1f2937',
+        line: '#c9d1dc',
+        paper: '#f4f6f9',
+        alert: '#b42318',
+        warn: '#b45309',
+      },
+      fontFamily: {
+        sans: ['"Noto Sans"', '"Noto Sans Devanagari"', 'Arial', 'sans-serif'],
+      },
+      borderRadius: { none: '0', sm: '2px', DEFAULT: '3px' },
     },
   },
   plugins: [],

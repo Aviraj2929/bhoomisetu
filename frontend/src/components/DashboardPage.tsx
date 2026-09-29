@@ -20,8 +20,8 @@ interface DashboardProps {
 
 const ConfidenceBadge: React.FC<{ value: number }> = ({ value }) => {
   const pct = Math.round(value * 100);
-  const color = pct >= 85 ? 'text-emerald-400' : pct >= 65 ? 'text-amber-400' : 'text-red-400';
-  return <span className={`font-mono font-bold ${color}`}>{pct}%</span>;
+  const color = pct >= 85 ? 'text-india-green' : pct >= 65 ? 'text-warn' : 'text-alert';
+  return <span className={`font-bold ${color}`}>{pct}%</span>;
 };
 
 export const DashboardPage: React.FC<DashboardProps> = ({
@@ -34,129 +34,97 @@ export const DashboardPage: React.FC<DashboardProps> = ({
     ? `${metrics.avg_processing_time_sec}s`
     : '—';
 
+  const Kpi: React.FC<{ label: string; value: React.ReactNode; note: string; icon: React.ReactNode; accent?: string }> = ({ label, value, note, icon, accent = 'border-t-navy' }) => (
+    <div className={`gov-card border-t-4 ${accent} p-4`}>
+      <div className="flex items-center justify-between text-navy mb-2">
+        <span className="text-sm font-semibold">{label}</span>
+        {icon}
+      </div>
+      <p className="text-3xl font-bold text-ink">{value}</p>
+      <span className="text-xs text-gray-600">{note}</span>
+    </div>
+  );
+
   return (
-    <div className="max-w-7xl mx-auto space-y-8">
+    <div className="max-w-7xl mx-auto space-y-6">
+      <h2 className="text-xl font-bold text-navy border-b-2 border-saffron pb-1 inline-block">Dashboard Overview</h2>
 
-      {/* KPI Cards Grid */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
-        <div className="bg-slate-800 border border-slate-700 rounded-xl p-5 hover:border-slate-600 transition">
-          <div className="flex items-center justify-between text-slate-400 mb-3">
-            <span className="text-xs uppercase font-semibold tracking-wide">Total Documents</span>
-            <FileText size={18} />
-          </div>
-          <p className="text-3xl font-extrabold text-slate-100">{metrics.total_documents}</p>
-          <span className="text-xs text-slate-500">Uploaded and tracked</span>
-        </div>
-
-        <div className="bg-slate-800 border border-slate-700 rounded-xl p-5 hover:border-slate-600 transition">
-          <div className="flex items-center justify-between text-slate-400 mb-3">
-            <span className="text-xs uppercase font-semibold tracking-wide">Auto-Approved</span>
-            <CheckCircle size={18} className="text-emerald-400" />
-          </div>
-          <p className="text-3xl font-extrabold text-emerald-400">{metrics.auto_approval_rate}</p>
-          <span className="text-xs text-slate-500">{metrics.auto_approved} documents</span>
-        </div>
-
-        <div className="bg-slate-800 border border-slate-700 rounded-xl p-5 hover:border-slate-600 transition">
-          <div className="flex items-center justify-between text-slate-400 mb-3">
-            <span className="text-xs uppercase font-semibold tracking-wide">Avg Field Confidence</span>
-            <Activity size={18} className="text-sky-400" />
-          </div>
-          <p className="text-3xl font-extrabold text-sky-400">
-            {metrics.avg_field_confidence > 0
-              ? `${(metrics.avg_field_confidence * 100).toFixed(1)}%`
-              : '—'}
-          </p>
-          <span className="text-xs text-slate-500">Across all extracted fields</span>
-        </div>
-
-        <div className="bg-slate-800 border border-slate-700 rounded-xl p-5 hover:border-slate-600 transition">
-          <div className="flex items-center justify-between text-slate-400 mb-3">
-            <span className="text-xs uppercase font-semibold tracking-wide">Avg Processing Time</span>
-            <Clock size={18} className="text-purple-400" />
-          </div>
-          <p className="text-3xl font-extrabold text-purple-400">{avgProcessing}</p>
-          <span className="text-xs text-slate-500">Per document</span>
-        </div>
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+        <Kpi label="Total Documents" value={metrics.total_documents} note="Uploaded and tracked" icon={<FileText size={18} />} />
+        <Kpi label="Auto-Approved" value={metrics.auto_approval_rate} note={`${metrics.auto_approved} documents`} icon={<CheckCircle size={18} className="text-india-green" />} accent="border-t-india-green" />
+        <Kpi
+          label="Avg Field Confidence"
+          value={metrics.avg_field_confidence > 0 ? `${(metrics.avg_field_confidence * 100).toFixed(1)}%` : '—'}
+          note="Across all extracted fields"
+          icon={<Activity size={18} />}
+        />
+        <Kpi label="Avg Processing Time" value={avgProcessing} note="Per document" icon={<Clock size={18} />} accent="border-t-saffron" />
       </div>
 
-      {/* Secondary stats */}
-      <div className="grid grid-cols-3 gap-6">
-        <div className="bg-slate-800 border border-amber-500/30 rounded-xl p-5">
-          <div className="flex items-center space-x-3 mb-2">
-            <AlertTriangle size={18} className="text-amber-400" />
-            <span className="text-xs uppercase font-semibold text-slate-400">Pending Verification</span>
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+        <div className="gov-card border-l-4 border-l-saffron p-4">
+          <div className="flex items-center gap-2 mb-1 text-warn">
+            <AlertTriangle size={18} />
+            <span className="text-sm font-semibold">Pending Verification</span>
           </div>
-          <p className="text-2xl font-extrabold text-amber-400">{metrics.action_required.pending_verifications}</p>
+          <p className="text-2xl font-bold text-ink">{metrics.action_required.pending_verifications}</p>
           {metrics.action_required.pending_verifications > 0 && (
-            <button
-              onClick={onOpenVerification}
-              className="mt-3 text-xs text-amber-400 hover:text-amber-300 underline transition"
-            >
-              Open queue →
+            <button onClick={onOpenVerification} className="mt-2 text-sm text-navy underline hover:text-navy-dark">
+              Open queue
             </button>
           )}
         </div>
 
-        <div className="bg-slate-800 border border-red-500/30 rounded-xl p-5">
-          <div className="flex items-center space-x-3 mb-2">
-            <XCircle size={18} className="text-red-400" />
-            <span className="text-xs uppercase font-semibold text-slate-400">Failed Processing</span>
+        <div className="gov-card border-l-4 border-l-alert p-4">
+          <div className="flex items-center gap-2 mb-1 text-alert">
+            <XCircle size={18} />
+            <span className="text-sm font-semibold">Failed Processing</span>
           </div>
-          <p className="text-2xl font-extrabold text-red-400">{metrics.action_required.validation_failures}</p>
+          <p className="text-2xl font-bold text-ink">{metrics.action_required.validation_failures}</p>
         </div>
 
-        <div className="bg-slate-800 border border-slate-700 rounded-xl p-5">
-          <div className="flex items-center space-x-3 mb-2">
-            <Users size={18} className="text-slate-400" />
-            <span className="text-xs uppercase font-semibold text-slate-400">Human Verified</span>
+        <div className="gov-card border-l-4 border-l-india-green p-4">
+          <div className="flex items-center gap-2 mb-1 text-india-green">
+            <Users size={18} />
+            <span className="text-sm font-semibold">Human Verified</span>
           </div>
-          <p className="text-2xl font-extrabold text-slate-100">{metrics.human_verified}</p>
+          <p className="text-2xl font-bold text-ink">{metrics.human_verified}</p>
         </div>
       </div>
 
-      {/* Verification Queue Table */}
       {verificationQueue.length > 0 && (
-        <div className="bg-slate-800 border border-slate-700 rounded-xl overflow-hidden">
-          <div className="px-6 py-4 border-b border-slate-700 flex items-center justify-between">
-            <h3 className="font-bold text-slate-100 text-sm">Verification Queue</h3>
-            <span className="text-xs text-amber-400 bg-amber-500/10 border border-amber-500/30 px-2.5 py-0.5 rounded-full font-semibold">
-              {verificationQueue.length} pending
-            </span>
+        <div className="gov-card overflow-x-auto">
+          <div className="gov-card-title flex items-center justify-between">
+            <h3>Verification Queue</h3>
+            <span className="bg-saffron text-ink text-xs font-bold px-2 py-0.5">{verificationQueue.length} pending</span>
           </div>
-          <table className="w-full text-left text-xs text-slate-300">
-            <thead className="bg-slate-900 border-b border-slate-700 text-slate-400 uppercase tracking-wider font-semibold">
+          <table className="w-full text-left text-sm">
+            <thead>
               <tr>
-                <th className="px-5 py-3">Filename</th>
-                <th className="px-5 py-3">Status</th>
-                <th className="px-5 py-3">Confidence</th>
-                <th className="px-5 py-3">Weakest Field</th>
-                <th className="px-5 py-3 text-right">Action</th>
+                <th className="gov-th">S.No.</th>
+                <th className="gov-th">Filename</th>
+                <th className="gov-th">Status</th>
+                <th className="gov-th">Confidence</th>
+                <th className="gov-th">Weakest Field</th>
+                <th className="gov-th text-right">Action</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-slate-700/60">
-              {verificationQueue.map(item => (
-                <tr key={item.document_id} className="hover:bg-slate-700/40 transition">
-                  <td className="px-5 py-3 font-mono text-slate-200">{item.original_filename}</td>
-                  <td className="px-5 py-3">
-                    <span className="bg-amber-500/20 text-amber-300 border border-amber-500/30 px-2 py-0.5 rounded text-[11px] font-semibold">
-                      {item.status}
-                    </span>
+            <tbody>
+              {verificationQueue.map((item, i) => (
+                <tr key={item.document_id} className="odd:bg-white even:bg-paper">
+                  <td className="gov-td">{i + 1}</td>
+                  <td className="gov-td font-semibold">{item.original_filename}</td>
+                  <td className="gov-td">
+                    <span className="bg-amber-100 text-warn border border-saffron px-2 py-0.5 text-xs font-semibold">{item.status}</span>
                   </td>
-                  <td className="px-5 py-3">
-                    <ConfidenceBadge value={item.overall_confidence} />
+                  <td className="gov-td"><ConfidenceBadge value={item.overall_confidence} /></td>
+                  <td className="gov-td">
+                    {item.lowest_confidence_field}{' '}
+                    <span className="text-alert">({Math.round(item.lowest_confidence * 100)}%)</span>
                   </td>
-                  <td className="px-5 py-3 font-mono text-slate-400">
-                    {item.lowest_confidence_field}
-                    {' '}
-                    <span className="text-red-400">({Math.round(item.lowest_confidence * 100)}%)</span>
-                  </td>
-                  <td className="px-5 py-3 text-right">
-                    <button
-                      onClick={() => onLoadTask?.(item.document_id, item.original_filename, item.overall_confidence)}
-                      className="bg-amber-600 hover:bg-amber-500 text-white font-semibold text-[11px] px-3 py-1.5 rounded transition"
-                    >
-                      Review →
+                  <td className="gov-td text-right">
+                    <button onClick={() => onLoadTask?.(item.document_id, item.original_filename, item.overall_confidence)} className="gov-btn !py-1 !text-xs">
+                      Review
                     </button>
                   </td>
                 </tr>
@@ -166,12 +134,11 @@ export const DashboardPage: React.FC<DashboardProps> = ({
         </div>
       )}
 
-      {/* Empty queue state */}
       {verificationQueue.length === 0 && metrics.total_documents === 0 && (
-        <div className="bg-slate-800/50 border border-slate-700 border-dashed rounded-xl p-12 text-center">
-          <Loader2 size={32} className="text-slate-600 mx-auto mb-4" />
-          <p className="text-slate-400 font-semibold">No documents processed yet</p>
-          <p className="text-slate-500 text-sm mt-1">Upload a land record PDF or image to get started.</p>
+        <div className="gov-card border-dashed p-10 text-center">
+          <Loader2 size={30} className="text-navy mx-auto mb-3" />
+          <p className="font-semibold text-navy">No documents processed yet</p>
+          <p className="text-sm mt-1">Upload a land record PDF or image using the form above to get started.</p>
         </div>
       )}
     </div>

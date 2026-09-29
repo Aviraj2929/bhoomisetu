@@ -1,7 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { Upload, FileText, CheckCircle, AlertCircle, RefreshCw, X, Clock } from 'lucide-react';
 
-const API_BASE = 'http://localhost:8000/api/v1';
+import { API_BASE } from '../config';
 
 interface UploadProps {
   onUploadSuccess: () => void;
@@ -132,123 +132,106 @@ export const DocumentUpload: React.FC<UploadProps> = ({ onUploadSuccess }) => {
   const isFailed = pipelineStatus === 'FAILED' || pipelineStatus === 'REJECTED';
 
   return (
-    <div className="bg-slate-800 border border-slate-700 rounded-xl p-6 shadow-xl space-y-4 max-w-2xl mx-auto">
-      {/* Header */}
-      <div className="flex items-center space-x-3 border-b border-slate-700 pb-3">
-        <Upload className="text-emerald-400" size={22} />
-        <div>
-          <h3 className="font-bold text-slate-100 text-sm">Upload Land Record Document</h3>
-          <p className="text-xs text-slate-400">
-            Supports PDF, PNG, JPEG, TIFF up to 50 MB. AI extraction runs automatically.
-          </p>
-        </div>
+    <div className="gov-card max-w-2xl mx-auto">
+      <div className="gov-card-title flex items-center gap-2">
+        <Upload size={16} aria-hidden="true" />
+        <h3>Upload Land Record Document</h3>
       </div>
 
-      {/* Drop zone */}
-      {!uploadedDocId && (
-        <div
-          onDragOver={e => { e.preventDefault(); setIsDragOver(true); }}
-          onDragLeave={() => setIsDragOver(false)}
-          onDrop={handleDrop}
-          className={`border-2 border-dashed rounded-xl p-8 text-center transition cursor-pointer ${
-            isDragOver
-              ? 'border-emerald-400 bg-emerald-500/10'
-              : 'border-slate-700 hover:border-emerald-500/50 bg-slate-900/50'
-          }`}
-          onClick={() => fileInputRef.current?.click()}
-        >
-          <input
-            ref={fileInputRef}
-            type="file"
-            onChange={handleFileChange}
-            accept=".pdf,.png,.jpg,.jpeg,.tiff,.bmp,.webp"
-            className="hidden"
-          />
-          <FileText size={36} className="text-slate-500 mx-auto mb-2" />
-          <span className="text-sm font-semibold text-slate-200">
-            {file ? file.name : 'Click or drag to select a land record scan'}
-          </span>
-          <span className="block text-xs text-slate-500 mt-1">
-            {file
-              ? `${(file.size / 1024 / 1024).toFixed(2)} MB — ready to upload`
-              : 'Khasra, Khatauni, Pahani, 7/12 extract, etc.'}
-          </span>
-        </div>
-      )}
+      <div className="p-4 space-y-4">
+        <p className="text-sm">
+          Accepted formats: PDF, PNG, JPEG, TIFF (up to 50 MB). Data extraction starts automatically after upload.
+        </p>
 
-      {/* Error */}
-      {error && (
-        <div className="p-3 bg-red-900/30 border border-red-500/30 rounded-lg flex items-start space-x-2">
-          <AlertCircle size={14} className="text-red-400 mt-0.5 flex-shrink-0" />
-          <p className="text-xs text-red-300">{error}</p>
-          <button onClick={() => setError(null)} className="ml-auto text-red-400 hover:text-red-200">
-            <X size={14} />
-          </button>
-        </div>
-      )}
-
-      {/* Pipeline status tracker */}
-      {uploadedDocId && pipelineStatus && (
-        <div className={`p-4 rounded-xl border space-y-2 ${
-          isFailed
-            ? 'bg-red-900/20 border-red-500/30'
-            : isTerminal
-            ? 'bg-emerald-900/20 border-emerald-500/30'
-            : 'bg-slate-900/80 border-slate-700'
-        }`}>
-          <div className="flex items-center space-x-2">
-            {isFailed ? (
-              <AlertCircle size={14} className="text-red-400 flex-shrink-0" />
-            ) : isTerminal ? (
-              <CheckCircle size={14} className="text-emerald-400 flex-shrink-0" />
-            ) : (
-              <RefreshCw size={14} className="text-sky-400 animate-spin flex-shrink-0" />
-            )}
-            <span className={`text-xs font-semibold ${
-              isFailed ? 'text-red-300' : isTerminal ? 'text-emerald-300' : 'text-sky-300'
-            }`}>
-              {STATUS_LABELS[pipelineStatus] ?? pipelineStatus}
+        {!uploadedDocId && (
+          <div
+            onDragOver={e => { e.preventDefault(); setIsDragOver(true); }}
+            onDragLeave={() => setIsDragOver(false)}
+            onDrop={handleDrop}
+            className={`border-2 border-dashed p-8 text-center cursor-pointer ${
+              isDragOver ? 'border-saffron bg-amber-50' : 'border-navy bg-navy-light hover:bg-white'
+            }`}
+            onClick={() => fileInputRef.current?.click()}
+            role="button"
+            tabIndex={0}
+            onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') fileInputRef.current?.click(); }}
+          >
+            <input
+              ref={fileInputRef}
+              type="file"
+              onChange={handleFileChange}
+              accept=".pdf,.png,.jpg,.jpeg,.tiff,.bmp,.webp"
+              className="hidden"
+            />
+            <FileText size={34} className="text-navy mx-auto mb-2" aria-hidden="true" />
+            <span className="text-sm font-semibold text-navy">
+              {file ? file.name : 'Click or drag to select a land record scan'}
+            </span>
+            <span className="block text-xs mt-1 text-gray-600">
+              {file
+                ? `${(file.size / 1024 / 1024).toFixed(2)} MB – ready to upload`
+                : 'Khasra, Khatauni, Jamabandi, Pahani, 7/12 extract, etc.'}
             </span>
           </div>
-          {!isTerminal && (
-            <div className="flex items-center space-x-1.5 text-xs text-slate-500">
-              <Clock size={11} />
-              <span>Processing in background — this page will update automatically</span>
-            </div>
-          )}
-          <p className="text-[11px] text-slate-500 font-mono">doc: {uploadedDocId.slice(0, 16)}…</p>
-          {isTerminal && !isFailed && (
-            <button
-              onClick={() => { setUploadedDocId(null); setPipelineStatus(null); }}
-              className="text-xs text-emerald-400 hover:text-emerald-300 underline mt-1"
-            >
-              Upload another document
-            </button>
-          )}
-        </div>
-      )}
+        )}
 
-      {/* Upload button */}
-      {!uploadedDocId && (
-        <button
-          onClick={handleUpload}
-          disabled={!file || uploading}
-          className={`w-full py-2.5 rounded-lg text-xs font-semibold shadow transition flex items-center justify-center space-x-2 ${
-            file && !uploading
-              ? 'bg-emerald-600 hover:bg-emerald-500 text-white'
-              : 'bg-slate-700 text-slate-500 cursor-not-allowed'
-          }`}
-        >
-          {uploading ? (
-            <>
-              <RefreshCw size={14} className="animate-spin" />
-              <span>Uploading...</span>
-            </>
-          ) : (
-            <span>Upload & Start AI Extraction Pipeline</span>
-          )}
-        </button>
-      )}
+        {error && (
+          <div className="p-3 bg-red-50 border border-alert border-l-8 flex items-start gap-2" role="alert">
+            <AlertCircle size={16} className="text-alert mt-0.5 flex-shrink-0" />
+            <p className="text-sm text-alert">{error}</p>
+            <button onClick={() => setError(null)} className="ml-auto text-alert" aria-label="Dismiss error">
+              <X size={16} />
+            </button>
+          </div>
+        )}
+
+        {uploadedDocId && pipelineStatus && (
+          <div className={`p-4 border border-l-8 space-y-2 ${
+            isFailed ? 'bg-red-50 border-alert' : isTerminal ? 'bg-india-greenLight border-india-green' : 'bg-navy-light border-navy'
+          }`} role="status">
+            <div className="flex items-center gap-2">
+              {isFailed ? (
+                <AlertCircle size={16} className="text-alert flex-shrink-0" />
+              ) : isTerminal ? (
+                <CheckCircle size={16} className="text-india-green flex-shrink-0" />
+              ) : (
+                <RefreshCw size={16} className="text-navy animate-spin flex-shrink-0" />
+              )}
+              <span className={`text-sm font-semibold ${isFailed ? 'text-alert' : isTerminal ? 'text-india-green' : 'text-navy'}`}>
+                {STATUS_LABELS[pipelineStatus] ?? pipelineStatus}
+              </span>
+            </div>
+            {!isTerminal && (
+              <div className="flex items-center gap-1.5 text-xs">
+                <Clock size={12} />
+                <span>Processing in background. This page updates automatically.</span>
+              </div>
+            )}
+            <p className="text-xs text-gray-600">Document ID: {uploadedDocId.slice(0, 16)}…</p>
+            {isTerminal && !isFailed && (
+              <button
+                onClick={() => { setUploadedDocId(null); setPipelineStatus(null); }}
+                className="text-sm text-navy underline"
+              >
+                Upload another document
+              </button>
+            )}
+          </div>
+        )}
+
+        {!uploadedDocId && (
+          <button onClick={handleUpload} disabled={!file || uploading} className="gov-btn w-full flex items-center justify-center gap-2">
+            {uploading ? (
+              <>
+                <RefreshCw size={14} className="animate-spin" />
+                <span>Uploading...</span>
+              </>
+            ) : (
+              <span>Upload and start extraction</span>
+            )}
+          </button>
+        )}
+      </div>
     </div>
   );
 };

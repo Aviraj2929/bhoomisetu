@@ -1,12 +1,13 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { Navbar } from './components/Navbar';
+import { Footer } from './components/Footer';
 import { DashboardPage } from './components/DashboardPage';
 import { VerificationWorkspace } from './components/VerificationWorkspace';
 import { DigitizedRecordsPage } from './components/DigitizedRecordsPage';
 import { DocumentUpload } from './components/DocumentUpload';
 import { DashboardMetrics, DocumentVerificationTask } from './types';
 
-const API_BASE = 'http://localhost:8000/api/v1';
+import { API_BASE } from './config';
 
 interface VerificationQueueItem {
   document_id: string;
@@ -81,7 +82,7 @@ export const App: React.FC = () => {
         filename: filename,
         status: data.status,
         overall_confidence: data.overall_confidence ?? overallConf,
-        image_url: data.file_url ? (data.file_url.startsWith('http') ? data.file_url : `${API_BASE.replace('/api/v1', '')}${data.file_url}`) : `${API_BASE}/documents/${documentId}/file`,
+        image_url: '',    // Could be extended to serve the stored image
         fields: (data.fields || []).map((f: any) => ({
           field_id: f.field_id,
           field_name: f.field_name,
@@ -130,10 +131,10 @@ export const App: React.FC = () => {
   }, [fetchMetrics, fetchVerificationQueue]);
 
   return (
-    <div className="min-h-screen bg-slate-900 text-slate-100 flex flex-col font-sans">
+    <div className="min-h-screen bg-paper text-ink flex flex-col font-sans">
       <Navbar activeTab={activeTab} setActiveTab={setActiveTab} />
 
-      <main className="flex-1 p-6 space-y-8">
+      <main id="main-content" className="flex-1 p-4 md:p-6 space-y-6">
         {activeTab === 'dashboard' && (
           <>
             <DocumentUpload onUploadSuccess={handleUploadSuccess} />
@@ -141,23 +142,19 @@ export const App: React.FC = () => {
             {/* Verification queue summary */}
             {verificationQueue.length > 0 && (
               <div className="max-w-7xl mx-auto">
-                <div className="bg-amber-500/10 border border-amber-500/30 rounded-xl p-4 flex items-center justify-between">
+                <div className="bg-amber-50 border border-saffron border-l-8 p-4 flex flex-wrap items-center justify-between gap-3" role="status">
                   <div>
-                    <p className="text-sm font-semibold text-amber-300">
-                      {verificationQueue.length} document{verificationQueue.length > 1 ? 's' : ''} in verification queue
+                    <p className="text-sm font-semibold text-warn">
+                      {verificationQueue.length} document{verificationQueue.length > 1 ? 's' : ''} pending verification
                     </p>
-                    <p className="text-xs text-slate-400 mt-0.5">
-                      Most urgent: <strong className="text-slate-200">{verificationQueue[0].original_filename}</strong>
-                      {' '}— lowest confidence field: <strong className="text-amber-400">{verificationQueue[0].lowest_confidence_field}</strong>
+                    <p className="text-sm text-ink mt-0.5">
+                      Most urgent: <strong>{verificationQueue[0].original_filename}</strong>
+                      {' '}– lowest confidence field: <strong>{verificationQueue[0].lowest_confidence_field}</strong>
                       {' '}({Math.round(verificationQueue[0].lowest_confidence * 100)}%)
                     </p>
                   </div>
-                  <button
-                    onClick={openNextVerificationTask}
-                    disabled={loadingTask}
-                    className="bg-amber-600 hover:bg-amber-500 disabled:opacity-50 text-white font-semibold text-xs px-4 py-2 rounded-lg shadow transition"
-                  >
-                    {loadingTask ? 'Loading...' : 'Open Most Urgent Task'}
+                  <button onClick={openNextVerificationTask} disabled={loadingTask} className="gov-btn">
+                    {loadingTask ? 'Loading...' : 'Open most urgent task'}
                   </button>
                 </div>
               </div>
@@ -175,29 +172,21 @@ export const App: React.FC = () => {
         )}
 
         {activeTab === 'verification' && verificationTask && (
-          <VerificationWorkspace
-            task={verificationTask}
-            onSaveCorrections={handleVerificationComplete}
-          />
+          <VerificationWorkspace task={verificationTask} onSaveCorrections={handleVerificationComplete} />
         )}
 
         {activeTab === 'verification' && !verificationTask && !loadingTask && (
-          <div className="flex flex-col items-center justify-center h-64 text-slate-500 space-y-4">
-            <p className="text-lg font-semibold">No verification task selected</p>
-            <p className="text-sm">Upload a document or open a task from the queue on the Dashboard.</p>
-            <button
-              onClick={() => setActiveTab('dashboard')}
-              className="bg-slate-700 hover:bg-slate-600 text-slate-200 text-sm px-4 py-2 rounded-lg transition"
-            >
-              ← Back to Dashboard
-            </button>
+          <div className="max-w-2xl mx-auto gov-card p-8 text-center space-y-3">
+            <p className="text-lg font-semibold text-navy">No verification task selected</p>
+            <p className="text-sm">Upload a document, or open a task from the queue on the Dashboard.</p>
+            <button onClick={() => setActiveTab('dashboard')} className="gov-btn-alt">Back to Dashboard</button>
           </div>
         )}
 
         {activeTab === 'verification' && loadingTask && (
-          <div className="flex items-center justify-center h-64 text-slate-400">
+          <div className="flex items-center justify-center h-64">
             <div className="text-center space-y-3">
-              <div className="w-8 h-8 border-2 border-amber-400 border-t-transparent rounded-full animate-spin mx-auto" />
+              <div className="w-8 h-8 border-4 border-navy border-t-transparent rounded-full animate-spin mx-auto" />
               <p className="text-sm">Loading verification task...</p>
             </div>
           </div>
@@ -205,6 +194,8 @@ export const App: React.FC = () => {
 
         {activeTab === 'records' && <DigitizedRecordsPage />}
       </main>
+
+      <Footer />
     </div>
   );
 };
